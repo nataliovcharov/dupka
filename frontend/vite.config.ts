@@ -9,6 +9,8 @@ export default defineConfig({
     exclude: ['maplibre-gl'],
   },
   server: {
+    // lets a phone reach the dev server through a cloudflare tunnel
+    allowedHosts: ['.trycloudflare.com'],
     // in development, /api/* goes to the FastAPI server, so the browser sees one origin
     proxy: {
       '/api': {
