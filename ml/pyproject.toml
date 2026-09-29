@@ -1,0 +1,14 @@
+[project]
+name = "dupka-ml"
+version = "0.1.0"
+description = "Road damage detection model for Dupka"
+requires-python = ">=3.13"
+dependencies = [
+    "ultralytics>=8.4.165",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+    "ruff>=0.16.9",
+]
