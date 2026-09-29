@@ -30,7 +30,7 @@ export default function LocationPicker({ value, onChange }: Props) {
       center: initialValue.current,
       zoom: 17,
     })
-    const marker = new maplibregl.Marker({ draggable: true, color: '#d62828' })
+    const marker = new maplibregl.Marker({ draggable: true, color: '#e0201b' })
       .setLngLat(initialValue.current)
       .addTo(map)
 
