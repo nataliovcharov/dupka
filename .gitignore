@@ -245,3 +245,6 @@ ml/runs/
 
 # Ultralytics may save runs at the repo root
 /runs/
+
+# Local photo storage (development)
+backend/storage/
