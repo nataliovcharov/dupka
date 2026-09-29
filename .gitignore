@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- Dupka additions ----
+# macOS
+.DS_Store
+
+# Frontend / Node
+node_modules/
+dist/
+*.log
+
+# Secrets: never commit real environment files
+.env
+.env.*
+!.env.example
+
+# ML artifacts (datasets and model weights live outside Git)
+ml/data/
+ml/runs/
+*.pt
+*.onnx
+
+# Editors (shared VS Code settings are allowed)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
