@@ -5,9 +5,11 @@ from app.core.config import settings
 
 
 class Storage(Protocol):
-    """Anything that can save a file under a key."""
+    """Anything that can save and load files by key."""
 
     def save(self, key: str, data: bytes) -> None: ...
+
+    def load(self, key: str) -> bytes: ...
 
 
 class LocalStorage:
@@ -23,6 +25,9 @@ class LocalStorage:
         path = self.root / key
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
+
+    def load(self, key: str) -> bytes:
+        return (self.root / key).read_bytes()
 
 
 def get_storage() -> Storage:
