@@ -9,6 +9,7 @@ from app.db.session import SessionLocal
 from app.models import Report, ReportStatus
 from app.services.detector import Detector
 from app.services.moderation import confident, decide_visibility
+from app.services.safety import SafetyChecker
 from app.services.severity import summarize
 from app.storage import Storage
 
@@ -35,16 +36,24 @@ def claim_next_report(db: Session) -> Report | None:
 
 
 def process_report(
-    db: Session, report: Report, detector: Detector, storage: Storage
+    db: Session,
+    report: Report,
+    detector: Detector,
+    safety_checker: SafetyChecker,
+    storage: Storage,
 ) -> None:
-    """Run the detector on one report and save the result."""
+    """Check one report's photo, look for damage, and save the result."""
     try:
-        detections = detector.detect(storage.load(report.photo_key))
+        image = storage.load(report.photo_key)
+        safety = safety_checker.check(image)
+        report.safety = safety.model_dump()
+        # no need to look for damage in a photo that will be hidden anyway
+        detections = [] if safety.unsafe else detector.detect(image)
         found = confident(detections, settings.min_detection_confidence)
         # keep every detection, low confidence ones help when tuning the threshold
         report.detections = [d.model_dump() for d in detections]
         report.damage_type, report.severity = summarize(found)
-        report.visibility = decide_visibility(found)
+        report.visibility = decide_visibility(safety, found)
         report.status = ReportStatus.DONE
     except Exception:
         logger.exception("failed to process report %s", report.id)
@@ -52,18 +61,22 @@ def process_report(
     db.commit()
 
 
-def run_once(detector: Detector, storage: Storage) -> bool:
+def run_once(
+    detector: Detector, safety_checker: SafetyChecker, storage: Storage
+) -> bool:
     """Process one report if there is one. Returns False when the queue is empty."""
     with SessionLocal() as db:
         report = claim_next_report(db)
         if report is None:
             return False
-        process_report(db, report, detector, storage)
+        process_report(db, report, detector, safety_checker, storage)
         return True
 
 
-def run_forever(detector: Detector, storage: Storage) -> None:
+def run_forever(
+    detector: Detector, safety_checker: SafetyChecker, storage: Storage
+) -> None:
     logger.info("worker started")
     while True:
-        if not run_once(detector, storage):
+        if not run_once(detector, safety_checker, storage):
             time.sleep(POLL_SECONDS)
