@@ -18,6 +18,10 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.9",
 ]
+worker = [
+    "torch>=2.14.0",
+    "transformers>=5.17.0",
+]
 
 [tool.ruff]
 target-version = "py313"
