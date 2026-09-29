@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    # official image has no arm64 build, runs under Rosetta on Apple Silicon
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dupka}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dupka}
+      POSTGRES_DB: ${POSTGRES_DB:-dupka}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:
