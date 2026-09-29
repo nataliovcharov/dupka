@@ -74,3 +74,44 @@ def test_rejects_unsupported_file_type():
 def test_unknown_report_returns_404():
     response = client.get(f"/reports/{uuid.uuid4()}")
     assert response.status_code == 404
+
+
+# bbox strings: min_lon,min_lat,max_lon,max_lat
+CENTRAL_SKOPJE = "21.38,41.97,21.47,42.02"
+BITOLA = "21.30,41.00,21.37,41.05"
+
+
+def create_report_in_skopje() -> str:
+    response = client.post(
+        "/reports",
+        data=SKOPJE,
+        files={"photo": ("road.jpg", make_jpeg(), "image/jpeg")},
+    )
+    return response.json()["id"]
+
+
+def test_list_reports_returns_geojson_inside_bbox():
+    report_id = create_report_in_skopje()
+
+    response = client.get("/reports", params={"bbox": CENTRAL_SKOPJE})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["type"] == "FeatureCollection"
+
+    ids = [f["properties"]["id"] for f in body["features"]]
+    assert report_id in ids
+    feature = body["features"][ids.index(report_id)]
+    assert feature["geometry"]["coordinates"] == pytest.approx([21.4254, 41.9965])
+
+
+def test_list_reports_excludes_reports_outside_bbox():
+    report_id = create_report_in_skopje()
+
+    response = client.get("/reports", params={"bbox": BITOLA})
+    ids = [f["properties"]["id"] for f in response.json()["features"]]
+    assert report_id not in ids
+
+
+def test_list_reports_rejects_invalid_bbox():
+    response = client.get("/reports", params={"bbox": "not,a,valid,bbox"})
+    assert response.status_code == 422
