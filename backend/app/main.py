@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
 
+from app.api import reports
 from app.db.session import DbSession
 
 app = FastAPI(title="Dupka API", version="0.1.0")
+app.include_router(reports.router)
 
 
 @app.get("/health")
