@@ -5,7 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.db.session import SessionLocal
 from app.main import app
+from app.models import Report, ReportVisibility
 from app.storage import LocalStorage, get_storage
 
 client = TestClient(app)
@@ -36,6 +38,7 @@ def test_create_and_get_report(tmp_storage):
     assert response.status_code == 201
     report = response.json()
     assert report["status"] == "pending"
+    assert report["visibility"] == "pending"
     assert report["latitude"] == pytest.approx(41.9965)
     assert report["longitude"] == pytest.approx(21.4254)
     assert (tmp_storage / "reports" / f"{report['id']}.jpg").exists()
@@ -81,13 +84,18 @@ CENTRAL_SKOPJE = "21.38,41.97,21.47,42.02"
 BITOLA = "21.30,41.00,21.37,41.05"
 
 
-def create_report_in_skopje() -> str:
+def create_report_in_skopje(visibility=ReportVisibility.PUBLIC) -> str:
     response = client.post(
         "/reports",
         data=SKOPJE,
         files={"photo": ("road.jpg", make_jpeg(), "image/jpeg")},
     )
-    return response.json()["id"]
+    report_id = response.json()["id"]
+    # stand in for the worker, which decides the visibility
+    with SessionLocal() as db:
+        db.get(Report, uuid.UUID(report_id)).visibility = visibility
+        db.commit()
+    return report_id
 
 
 def test_list_reports_returns_geojson_inside_bbox():
@@ -115,3 +123,19 @@ def test_list_reports_excludes_reports_outside_bbox():
 def test_list_reports_rejects_invalid_bbox():
     response = client.get("/reports", params={"bbox": "not,a,valid,bbox"})
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "visibility",
+    [
+        ReportVisibility.PENDING,
+        ReportVisibility.NEEDS_REVIEW,
+        ReportVisibility.HIDDEN,
+    ],
+)
+def test_list_reports_shows_only_public_reports(visibility):
+    report_id = create_report_in_skopje(visibility)
+
+    response = client.get("/reports", params={"bbox": CENTRAL_SKOPJE})
+    ids = [f["properties"]["id"] for f in response.json()["features"]]
+    assert report_id not in ids
