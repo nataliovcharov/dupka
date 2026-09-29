@@ -1,12 +1,23 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from geoalchemy2 import Geography
+from sqlalchemy import cast, func, select
 
 from app.core.config import settings
 from app.db.session import DbSession
-from app.models import Report
-from app.schemas.report import ReportOut
+from app.models import Report, ReportStatus
+from app.schemas.report import ReportCollection, ReportFeature, ReportOut
 from app.services.images import InvalidImageError, clean_photo
 from app.storage import Storage, get_storage
 
@@ -69,3 +80,44 @@ def get_report(report_id: uuid.UUID, db: DbSession):
     if report is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "report not found")
     return ReportOut.from_model(report)
+
+
+def parse_bbox(bbox: str) -> tuple[float, float, float, float]:
+    """Parse 'min_lon,min_lat,max_lon,max_lat' into four numbers."""
+    try:
+        min_lon, min_lat, max_lon, max_lat = (float(v) for v in bbox.split(","))
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "bbox must be min_lon,min_lat,max_lon,max_lat",
+        ) from exc
+    if not (-180 <= min_lon < max_lon <= 180 and -90 <= min_lat < max_lat <= 90):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "bbox coordinates are out of range"
+        )
+    return min_lon, min_lat, max_lon, max_lat
+
+
+@router.get("", response_model=ReportCollection)
+def list_reports(
+    db: DbSession,
+    bbox: Annotated[
+        str | None,
+        Query(description="Visible map area: min_lon,min_lat,max_lon,max_lat"),
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 500,
+):
+    """List reports for the map as GeoJSON, newest first."""
+    query = (
+        select(Report)
+        .where(Report.status != ReportStatus.FAILED)
+        .order_by(Report.created_at.desc())
+        .limit(limit)
+    )
+    if bbox:
+        min_lon, min_lat, max_lon, max_lat = parse_bbox(bbox)
+        area = func.ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326)
+        query = query.where(func.ST_Intersects(Report.location, cast(area, Geography)))
+
+    reports = db.scalars(query).all()
+    return ReportCollection(features=[ReportFeature.from_model(r) for r in reports])
