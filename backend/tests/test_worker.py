@@ -1,10 +1,9 @@
-from app.worker import claim_next_report, process_report
 from app.db.session import SessionLocal
 from app.models import Report, ReportStatus
 from app.services.detector import Detection
 from app.services.severity import summarize
 from app.storage import LocalStorage
-from app.worker import process_report
+from app.worker import claim_next_report, process_report
 
 SKOPJE = "SRID=4326;POINT(21.4254 41.9965)"
 
