@@ -242,3 +242,6 @@ ml/runs/
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
+
+# Ultralytics may save runs at the repo root
+/runs/
