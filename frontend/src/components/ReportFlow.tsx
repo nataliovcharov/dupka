@@ -70,8 +70,8 @@ export default function ReportFlow({
           <>
             <h2 id="report-title">Thank you!</h2>
             <p>
-              Your report was sent. We are analysing the photo, and it will appear on the map
-              in a moment.
+              Your report was sent. We check every photo before it goes on the public map,
+              usually within a minute. Until then, you'll see it as a red ring.
             </p>
             <button className="button button-primary" onClick={onClose}>
               Done

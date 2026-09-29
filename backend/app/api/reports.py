@@ -16,7 +16,7 @@ from sqlalchemy import cast, func, select
 
 from app.core.config import settings
 from app.db.session import DbSession
-from app.models import Report, ReportStatus
+from app.models import Report, ReportVisibility
 from app.schemas.report import ReportCollection, ReportFeature, ReportOut
 from app.services.images import InvalidImageError, clean_photo
 from app.storage import Storage, get_storage
@@ -107,10 +107,10 @@ def list_reports(
     ] = None,
     limit: Annotated[int, Query(ge=1, le=1000)] = 500,
 ):
-    """List reports for the map as GeoJSON, newest first."""
+    """List public reports for the map as GeoJSON, newest first."""
     query = (
         select(Report)
-        .where(Report.status != ReportStatus.FAILED)
+        .where(Report.visibility == ReportVisibility.PUBLIC)
         .order_by(Report.created_at.desc())
         .limit(limit)
     )

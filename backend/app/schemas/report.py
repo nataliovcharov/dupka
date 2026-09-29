@@ -5,7 +5,7 @@ from typing import Literal
 from geoalchemy2.shape import to_shape
 from pydantic import BaseModel
 
-from app.models import Report, ReportStatus
+from app.models import Report, ReportStatus, ReportVisibility
 
 
 class ReportOut(BaseModel):
@@ -13,6 +13,7 @@ class ReportOut(BaseModel):
 
     id: uuid.UUID
     status: ReportStatus
+    visibility: ReportVisibility
     latitude: float
     longitude: float
     damage_type: str | None
@@ -27,6 +28,7 @@ class ReportOut(BaseModel):
         return cls(
             id=report.id,
             status=report.status,
+            visibility=report.visibility,
             latitude=point.y,
             longitude=point.x,
             damage_type=report.damage_type,

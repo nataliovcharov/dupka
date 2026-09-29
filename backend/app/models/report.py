@@ -17,18 +17,35 @@ class ReportStatus(enum.StrEnum):
     FAILED = "failed"
 
 
+class ReportVisibility(enum.StrEnum):
+    PENDING = "pending"  # not checked yet
+    PUBLIC = "public"  # shown on the map
+    NEEDS_REVIEW = "needs_review"  # no damage found, a person should look at it
+    HIDDEN = "hidden"  # never shown
+
+
+def enum_column(enum_class: type[enum.StrEnum]) -> Enum:
+    """Store enums as their string values, e.g. "needs_review"."""
+    return Enum(
+        enum_class,
+        native_enum=False,
+        length=20,
+        values_callable=lambda members: [m.value for m in members],
+    )
+
+
 class Report(Base):
     __tablename__ = "reports"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     status: Mapped[ReportStatus] = mapped_column(
-        Enum(
-            ReportStatus,
-            native_enum=False,
-            length=20,
-            values_callable=lambda statuses: [s.value for s in statuses],
-        ),
-        default=ReportStatus.PENDING,
+        enum_column(ReportStatus), default=ReportStatus.PENDING, index=True
+    )
+    # status says if the worker ran, visibility says who can see the report
+    visibility: Mapped[ReportVisibility] = mapped_column(
+        enum_column(ReportVisibility),
+        default=ReportVisibility.PENDING,
+        server_default=ReportVisibility.PENDING.value,
         index=True,
     )
     # geography, so distances come out in meters

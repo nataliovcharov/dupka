@@ -1,5 +1,5 @@
 from app.db.session import SessionLocal
-from app.models import Report, ReportStatus
+from app.models import Report, ReportStatus, ReportVisibility
 from app.services.detector import Detection
 from app.services.severity import summarize
 from app.storage import LocalStorage
@@ -61,9 +61,46 @@ def test_process_report_saves_results(tmp_path):
         db.refresh(report)
 
         assert report.status == ReportStatus.DONE
+        assert report.visibility == ReportVisibility.PUBLIC
         assert report.damage_type == "D40"
         assert report.severity == "high"
         assert len(report.detections) == 1
+
+
+def process_with(tmp_path, detections) -> Report:
+    """Run the worker on one report with the given fake detections."""
+    storage = LocalStorage(tmp_path)
+    storage.save("reports/test.jpg", b"photo bytes")
+
+    with SessionLocal() as db:
+        report = Report(
+            photo_key="reports/test.jpg",
+            location=SKOPJE,
+            status=ReportStatus.PROCESSING,
+        )
+        db.add(report)
+        db.commit()
+        process_report(db, report, FakeDetector(detections), storage)
+        db.refresh(report)
+        db.expunge(report)
+        return report
+
+
+def test_photo_without_damage_goes_to_review(tmp_path):
+    report = process_with(tmp_path, [])
+
+    assert report.status == ReportStatus.DONE
+    assert report.visibility == ReportVisibility.NEEDS_REVIEW
+    assert report.severity is None
+
+
+def test_low_confidence_damage_goes_to_review(tmp_path):
+    unsure = Detection(damage_type="D40", confidence=0.1, box=(0.2, 0.2, 0.6, 0.6))
+    report = process_with(tmp_path, [unsure])
+
+    assert report.visibility == ReportVisibility.NEEDS_REVIEW
+    assert report.severity is None
+    assert len(report.detections) == 1  # still saved, for tuning the threshold
 
 
 def test_process_report_marks_failure_when_photo_missing(tmp_path):
@@ -82,6 +119,7 @@ def test_process_report_marks_failure_when_photo_missing(tmp_path):
         db.refresh(report)
 
         assert report.status == ReportStatus.FAILED
+        assert report.visibility == ReportVisibility.PENDING
 
 
 def test_claim_takes_oldest_pending_report_first():
