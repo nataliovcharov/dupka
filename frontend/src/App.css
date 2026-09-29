@@ -1,0 +1,36 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.map-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+.map-error {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff3f3;
+  border: 1px solid #d62828;
+  border-radius: 6px;
+  color: #d62828;
+}
