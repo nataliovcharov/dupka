@@ -3,14 +3,38 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { fetchReports } from '../api'
+import { MAP_STYLE, SKOPJE, type LngLat } from '../geo'
 
-const SKOPJE: [number, number] = [21.4316, 41.9981] // [lon, lat]
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
+interface Props {
+  refreshKey: number // bump this to reload the reports, e.g. after a new upload
+  onCenterChange: (center: LngLat) => void
+}
 
-export default function ReportMap() {
+// load the reports inside the visible area
+async function loadReports(map: maplibregl.Map): Promise<void> {
+  const bounds = map.getBounds()
+  const bbox = [
+    bounds.getWest(),
+    bounds.getSouth(),
+    bounds.getEast(),
+    bounds.getNorth(),
+  ].join(',')
+  const reports = await fetchReports(bbox)
+  const source = map.getSource('reports') as maplibregl.GeoJSONSource | undefined
+  source?.setData(reports)
+}
+
+export default function ReportMap({ refreshKey, onCenterChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const onCenterChangeRef = useRef(onCenterChange)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    onCenterChangeRef.current = onCenterChange
+  }, [onCenterChange])
+
+  // create the map once
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -21,24 +45,12 @@ export default function ReportMap() {
       zoom: 13,
     })
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
+    mapRef.current = map
 
-    // load the reports inside the visible area
-    async function loadReports() {
-      const bounds = map.getBounds()
-      const bbox = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth(),
-      ].join(',')
-      try {
-        const reports = await fetchReports(bbox)
-        const source = map.getSource('reports') as maplibregl.GeoJSONSource | undefined
-        source?.setData(reports)
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load reports')
-      }
+    function refresh() {
+      loadReports(map)
+        .then(() => setError(null))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
     }
 
     map.on('load', () => {
@@ -65,12 +77,28 @@ export default function ReportMap() {
           ],
         },
       })
-      loadReports()
+      refresh()
     })
-    map.on('moveend', loadReports)
+    map.on('moveend', () => {
+      const { lng, lat } = map.getCenter()
+      onCenterChangeRef.current([lng, lat])
+      refresh()
+    })
 
-    return () => map.remove()
+    return () => {
+      mapRef.current = null
+      map.remove()
+    }
   }, [])
+
+  // reload when asked to, e.g. right after a new report is created
+  useEffect(() => {
+    const map = mapRef.current
+    if (refreshKey === 0 || !map?.getSource('reports')) return
+    loadReports(map)
+      .then(() => setError(null))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
+  }, [refreshKey])
 
   return (
     <div className="map-wrapper">
