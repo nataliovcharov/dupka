@@ -1,3 +1,4 @@
+from app.worker import claim_next_report, process_report
 from app.db.session import SessionLocal
 from app.models import Report, ReportStatus
 from app.services.detector import Detection
@@ -82,3 +83,20 @@ def test_process_report_marks_failure_when_photo_missing(tmp_path):
         db.refresh(report)
 
         assert report.status == ReportStatus.FAILED
+
+
+def test_claim_takes_oldest_pending_report_first():
+    with SessionLocal() as db:
+        first = Report(photo_key="reports/1.jpg", location=SKOPJE)
+        db.add(first)
+        db.commit()
+        second = Report(photo_key="reports/2.jpg", location=SKOPJE)
+        db.add(second)
+        db.commit()
+
+        claimed = claim_next_report(db)
+        assert claimed.id == first.id
+        assert claimed.status == ReportStatus.PROCESSING
+
+        assert claim_next_report(db).id == second.id
+        assert claim_next_report(db) is None  # queue is empty
