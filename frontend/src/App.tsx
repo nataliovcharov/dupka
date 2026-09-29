@@ -3,6 +3,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import ReportFlow from './components/ReportFlow'
 import ReportMap from './components/ReportMap'
 import { SKOPJE, type LngLat } from './geo'
+import logo from './assets/logo.svg'
 import './App.css'
 
 interface Draft {
@@ -30,14 +31,18 @@ export default function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>Dupka</h1>
+        <h1>
+          <img src={logo} alt="Dupka" className="app-logo" />
+        </h1>
       </header>
 
       <ReportMap refreshKey={refreshKey} onCenterChange={setMapCenter} />
 
-      <button className="report-button" onClick={() => fileInputRef.current?.click()}>
-        Report damage
-      </button>
+      <footer className="action-bar">
+        <button className="report-button" onClick={() => fileInputRef.current?.click()}>
+          Report damage
+        </button>
+      </footer>
       {/* no capture attribute, so phones offer both "Take photo" and "Photo library" */}
       <input
         ref={fileInputRef}
