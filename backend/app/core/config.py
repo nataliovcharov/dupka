@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     max_upload_mb: int = 10
     # detections below this are ignored when deciding if a photo shows road damage
     min_detection_confidence: float = 0.4
+    # trained weights, kept out of Git (see ml/EXPERIMENTS.md)
+    model_path: Path = Path("../ml/models/e001-best.pt")
     # safety check, tuned on sample photos (see docs/moderation.md)
     clip_model: str = "openai/clip-vit-base-patch32"
     unsafe_threshold: float = 0.2
