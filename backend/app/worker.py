@@ -11,7 +11,7 @@ from app.services.detector import Detector
 from app.services.moderation import confident, decide_visibility
 from app.services.safety import SafetyChecker
 from app.services.severity import summarize
-from app.storage import Storage
+from app.storage import Storage, get_storage
 
 logger = logging.getLogger("dupka.worker")
 POLL_SECONDS = 2
@@ -55,6 +55,13 @@ def process_report(
         report.damage_type, report.severity = summarize(found)
         report.visibility = decide_visibility(safety, found)
         report.status = ReportStatus.DONE
+        logger.info(
+            "report %s: %s, %s, %d detections",
+            report.id,
+            report.visibility,
+            report.severity or "no severity",
+            len(found),
+        )
     except Exception:
         logger.exception("failed to process report %s", report.id)
         report.status = ReportStatus.FAILED
@@ -80,3 +87,25 @@ def run_forever(
     while True:
         if not run_once(detector, safety_checker, storage):
             time.sleep(POLL_SECONDS)
+
+
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
+    # imported here so the API and the tests don't need PyTorch
+    from app.services.clip_safety import ClipSafetyChecker
+    from app.services.yolo_detector import YoloDetector
+
+    logger.info("loading models")
+    detector = YoloDetector(settings.model_path)
+    safety_checker = ClipSafetyChecker()
+    try:
+        run_forever(detector, safety_checker, get_storage())
+    except KeyboardInterrupt:
+        logger.info("worker stopped")
+
+
+if __name__ == "__main__":
+    # uv run --group worker python -m app.worker
+    main()
