@@ -29,7 +29,7 @@ def tmp_storage(tmp_path):
     app.dependency_overrides.clear()
 
 
-def test_create_and_get_report(tmp_storage):
+def test_create_report(tmp_storage):
     response = client.post(
         "/reports",
         data=SKOPJE,
@@ -43,9 +43,8 @@ def test_create_and_get_report(tmp_storage):
     assert report["longitude"] == pytest.approx(21.4254)
     assert (tmp_storage / "reports" / f"{report['id']}.jpg").exists()
 
-    fetched = client.get(f"/reports/{report['id']}")
-    assert fetched.status_code == 200
-    assert fetched.json()["id"] == report["id"]
+    # not public yet, so it can't be fetched by id
+    assert client.get(f"/reports/{report['id']}").status_code == 404
 
 
 def test_rejects_location_outside_north_macedonia():
@@ -139,3 +138,25 @@ def test_list_reports_shows_only_public_reports(visibility):
     response = client.get("/reports", params={"bbox": CENTRAL_SKOPJE})
     ids = [f["properties"]["id"] for f in response.json()["features"]]
     assert report_id not in ids
+
+
+def test_get_public_report_by_id():
+    report_id = create_report_in_skopje()
+
+    response = client.get(f"/reports/{report_id}")
+    assert response.status_code == 200
+    assert response.json()["id"] == report_id
+
+
+@pytest.mark.parametrize(
+    "visibility",
+    [
+        ReportVisibility.PENDING,
+        ReportVisibility.NEEDS_REVIEW,
+        ReportVisibility.HIDDEN,
+    ],
+)
+def test_get_report_hides_non_public_reports(visibility):
+    report_id = create_report_in_skopje(visibility)
+
+    assert client.get(f"/reports/{report_id}").status_code == 404

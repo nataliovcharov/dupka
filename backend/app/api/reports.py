@@ -75,9 +75,10 @@ def create_report(
 
 @router.get("/{report_id}", response_model=ReportOut)
 def get_report(report_id: uuid.UUID, db: DbSession):
-    """Get one report by its id."""
+    """Get one public report by its id."""
     report = db.get(Report, report_id)
-    if report is None:
+    # same 404 for non-public reports, so hidden ones can't be found by id
+    if report is None or report.visibility != ReportVisibility.PUBLIC:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "report not found")
     return ReportOut.from_model(report)
 
