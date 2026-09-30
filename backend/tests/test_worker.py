@@ -1,3 +1,7 @@
+import io
+
+from PIL import Image, ImageDraw, ImageStat
+
 from app.db.session import SessionLocal
 from app.models import Report, ReportStatus, ReportVisibility
 from app.services.detector import Detection
@@ -29,6 +33,36 @@ class FakeDetector:
     def detect(self, image: bytes) -> list[Detection]:
         self.calls += 1
         return self.detections
+
+
+class FakePrivacyDetector:
+    """Finds fixed faces and plates, so tests don't need the real models."""
+
+    def __init__(self, faces=(), plates=(), error=None):
+        self.faces, self.plates, self.error = list(faces), list(plates), error
+
+    def find(self, photo):
+        if self.error:
+            raise self.error
+        return self.faces, self.plates
+
+
+def make_jpeg() -> bytes:
+    """A black and white checkerboard, full of detail a blur would remove."""
+    photo = Image.new("RGB", (64, 64), "white")
+    draw = ImageDraw.Draw(photo)
+    for x in range(0, 64, 8):
+        for y in range(0, 64, 8):
+            if (x + y) % 16 == 0:
+                draw.rectangle((x, y, x + 7, y + 7), fill="black")
+    buffer = io.BytesIO()
+    photo.save(buffer, format="JPEG", quality=95)
+    return buffer.getvalue()
+
+
+def detail(data: bytes, box) -> float:
+    photo = Image.open(io.BytesIO(data)).convert("L")
+    return ImageStat.Stat(photo.crop(box)).stddev[0]
 
 
 class FakeSafetyChecker:
@@ -67,10 +101,10 @@ def test_crack_only_is_low():
     assert summarize([crack()]) == ("D00", "low")
 
 
-def process_with(tmp_path, detector, safety=SAFE_ROAD) -> Report:
+def process_with(tmp_path, detector, safety=SAFE_ROAD, privacy=None) -> Report:
     """Run the worker on one report with fake models."""
     storage = LocalStorage(tmp_path)
-    storage.save("reports/test.jpg", b"photo bytes")
+    storage.save("reports/test.jpg", make_jpeg())
 
     with SessionLocal() as db:
         report = Report(
@@ -80,7 +114,14 @@ def process_with(tmp_path, detector, safety=SAFE_ROAD) -> Report:
         )
         db.add(report)
         db.commit()
-        process_report(db, report, detector, FakeSafetyChecker(safety), storage)
+        process_report(
+            db,
+            report,
+            detector,
+            FakeSafetyChecker(safety),
+            storage,
+            privacy or FakePrivacyDetector(),
+        )
         db.refresh(report)
         db.expunge(report)
         return report
@@ -143,7 +184,14 @@ def test_process_report_marks_failure_when_photo_missing(tmp_path):
         db.add(report)
         db.commit()
 
-        process_report(db, report, FakeDetector([]), FakeSafetyChecker(), storage)
+        process_report(
+            db,
+            report,
+            FakeDetector([]),
+            FakeSafetyChecker(),
+            storage,
+            FakePrivacyDetector(),
+        )
         db.refresh(report)
 
         assert report.status == ReportStatus.FAILED
@@ -176,4 +224,24 @@ def test_public_report_joins_an_issue(tmp_path):
 def test_report_in_review_has_no_issue(tmp_path):
     report = process_with(tmp_path, FakeDetector([]))
 
+    assert report.issue_id is None
+
+
+def test_only_the_blurred_photo_is_kept(tmp_path):
+    privacy = FakePrivacyDetector(faces=[(5, 5, 30, 30)], plates=[(35, 40, 60, 50)])
+    report = process_with(tmp_path, FakeDetector([pothole()]), privacy=privacy)
+
+    assert report.privacy == {"faces": 1, "plates": 1}
+    # the stored photo was replaced by the blurred one
+    stored = (tmp_path / "reports" / "test.jpg").read_bytes()
+    face = (8, 8, 28, 28)
+    assert detail(stored, face) < detail(make_jpeg(), face) / 4
+
+
+def test_report_fails_when_blurring_fails(tmp_path):
+    privacy = FakePrivacyDetector(error=RuntimeError("model broke"))
+    report = process_with(tmp_path, FakeDetector([pothole()]), privacy=privacy)
+
+    assert report.status == ReportStatus.FAILED
+    assert report.visibility == ReportVisibility.PENDING  # never public unblurred
     assert report.issue_id is None

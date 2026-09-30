@@ -10,6 +10,7 @@ from app.models import Report, ReportStatus, ReportVisibility
 from app.services.detector import Detector
 from app.services.issues import attach_to_issue
 from app.services.moderation import confident, decide_visibility
+from app.services.privacy import PrivacyDetector, anonymize
 from app.services.safety import SafetyChecker
 from app.services.severity import summarize
 from app.storage import Storage, get_storage
@@ -42,10 +43,15 @@ def process_report(
     detector: Detector,
     safety_checker: SafetyChecker,
     storage: Storage,
+    privacy_detector: PrivacyDetector,
 ) -> None:
     """Check one report's photo, look for damage, and save the result."""
     try:
         image = storage.load(report.photo_key)
+        # blur first and keep only the blurred photo.
+        # if this fails the report fails, so it never goes public unblurred
+        image, report.privacy = anonymize(image, privacy_detector)
+        storage.save(report.photo_key, image)
         safety = safety_checker.check(image)
         report.safety = safety.model_dump()
         # no need to look for damage in a photo that will be hidden anyway
@@ -74,23 +80,29 @@ def process_report(
 
 
 def run_once(
-    detector: Detector, safety_checker: SafetyChecker, storage: Storage
+    detector: Detector,
+    safety_checker: SafetyChecker,
+    storage: Storage,
+    privacy_detector: PrivacyDetector,
 ) -> bool:
     """Process one report if there is one. Returns False when the queue is empty."""
     with SessionLocal() as db:
         report = claim_next_report(db)
         if report is None:
             return False
-        process_report(db, report, detector, safety_checker, storage)
+        process_report(db, report, detector, safety_checker, storage, privacy_detector)
         return True
 
 
 def run_forever(
-    detector: Detector, safety_checker: SafetyChecker, storage: Storage
+    detector: Detector,
+    safety_checker: SafetyChecker,
+    storage: Storage,
+    privacy_detector: PrivacyDetector,
 ) -> None:
     logger.info("worker started")
     while True:
-        if not run_once(detector, safety_checker, storage):
+        if not run_once(detector, safety_checker, storage, privacy_detector):
             time.sleep(POLL_SECONDS)
 
 
@@ -100,13 +112,20 @@ def main() -> None:
     )
     # imported here so the API and the tests don't need PyTorch
     from app.services.clip_safety import ClipSafetyChecker
+    from app.services.opencv_privacy import OpenCvPrivacyDetector
     from app.services.yolo_detector import YoloDetector
 
     logger.info("loading models")
     detector = YoloDetector(settings.model_path)
     safety_checker = ClipSafetyChecker()
+    privacy_detector = OpenCvPrivacyDetector(
+        settings.face_model_path,
+        settings.plate_model_path,
+        settings.face_threshold,
+        settings.plate_threshold,
+    )
     try:
-        run_forever(detector, safety_checker, get_storage())
+        run_forever(detector, safety_checker, get_storage(), privacy_detector)
     except KeyboardInterrupt:
         logger.info("worker stopped")
 

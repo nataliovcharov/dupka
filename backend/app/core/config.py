@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     clip_model: str = "openai/clip-vit-base-patch32"
     unsafe_threshold: float = 0.2
     road_threshold: float = 0.5
+    # face and plate blurring, low thresholds because a missed face is worse
+    # than a blurred patch of wall (see docs/moderation.md)
+    face_model_path: Path = Path("../ml/models/face_detection_yunet_2023mar.onnx")
+    plate_model_path: Path = Path(
+        "../ml/models/yolo-v9-s-608-license-plates-end2end.onnx"
+    )
+    face_threshold: float = 0.6
+    plate_threshold: float = 0.25
     # public reports this close (meters) are grouped into one issue
     duplicate_radius_m: float = 15
     # admin endpoints are off when this is empty

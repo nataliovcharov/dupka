@@ -19,6 +19,7 @@ dev = [
     "ruff>=0.16.9",
 ]
 worker = [
+    "onnxruntime>=1.30.0",
     "pi-heif>=1.4.0",
     "torch>=2.14.0",
     "transformers>=5.17.0",

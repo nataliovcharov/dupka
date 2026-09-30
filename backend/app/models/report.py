@@ -60,6 +60,8 @@ class Report(Base):
     detections: Mapped[list | None] = mapped_column(JSONB)
     # safety check scores, kept for reviewing reports and tuning thresholds
     safety: Mapped[dict | None] = mapped_column(JSONB)
+    # how many faces and plates were blurred
+    privacy: Mapped[dict | None] = mapped_column(JSONB)
     damage_type: Mapped[str | None] = mapped_column(String(10))
     severity: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(
