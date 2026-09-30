@@ -27,7 +27,7 @@ Set in `backend/app/core/config.py`, can be changed with environment variables.
 |---|---|---|
 | `UNSAFE_THRESHOLD` | 0.2 | unsafe score at or above this hides the photo |
 | `ROAD_THRESHOLD` | 0.5 | road score below this sends the photo to review |
-| `MIN_DETECTION_CONFIDENCE` | 0.4 | detections below this don't count as damage |
+| `MIN_DETECTION_CONFIDENCE` | 0.28 | detections below this don't count as damage |
 
 ## Tuning log
 
@@ -43,5 +43,6 @@ uv run --group worker python -m app.services.clip_safety path/to/photo.jpg
 | 2026-09-29 | 30 RDD2022 Czech road photos | 0 flagged unsafe, 0 missed as roads. Road scores around 0.98, unsafe below 0.01 | none |
 | 2026-09-29 | GitHub logo (transparent PNG) | unsafe 0.36, flagged. Transparent areas turned black and no prompt fit a logo | transparent areas now go on white; added "a logo or an icon" and "a cartoon or a drawing". Unsafe dropped to 0.02 |
 | 2026-09-29 | 1 non-road PNG | other 0.97, not a road | none |
+| 2026-09-30 | e001 val split (2,783 images) | F1 peak 0.62 at 0.281 for all classes, pothole peak around 0.25 | `MIN_DETECTION_CONFIDENCE` 0.4 to 0.28 |
 
 Next: run on real Skopje photos, and on a public benchmark for unsafe content.
