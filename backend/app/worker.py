@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models import Report, ReportStatus
+from app.models import Report, ReportStatus, ReportVisibility
 from app.services.detector import Detector
+from app.services.issues import attach_to_issue
 from app.services.moderation import confident, decide_visibility
 from app.services.safety import SafetyChecker
 from app.services.severity import summarize
@@ -54,6 +55,8 @@ def process_report(
         report.detections = [d.model_dump() for d in detections]
         report.damage_type, report.severity = summarize(found)
         report.visibility = decide_visibility(safety, found)
+        if report.visibility == ReportVisibility.PUBLIC:
+            attach_to_issue(db, report)
         report.status = ReportStatus.DONE
         logger.info(
             "report %s: %s, %s, %d detections",
@@ -64,6 +67,8 @@ def process_report(
         )
     except Exception:
         logger.exception("failed to process report %s", report.id)
+        # a failed query leaves the transaction unusable, start clean
+        db.rollback()
         report.status = ReportStatus.FAILED
     db.commit()
 

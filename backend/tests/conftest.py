@@ -25,4 +25,4 @@ def migrated_database():
 def clean_reports(migrated_database):
     """Start every test with empty tables."""
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE reviews, reports"))
+        connection.execute(text("TRUNCATE reviews, reports, issues"))

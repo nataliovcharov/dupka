@@ -165,3 +165,15 @@ def test_claim_takes_oldest_pending_report_first():
 
         assert claim_next_report(db).id == second.id
         assert claim_next_report(db) is None  # queue is empty
+
+
+def test_public_report_joins_an_issue(tmp_path):
+    report = process_with(tmp_path, FakeDetector([pothole()]))
+
+    assert report.issue_id is not None
+
+
+def test_report_in_review_has_no_issue(tmp_path):
+    report = process_with(tmp_path, FakeDetector([]))
+
+    assert report.issue_id is None
