@@ -1,5 +1,5 @@
 import type { LngLat } from './geo'
-import type { Report, ReportCollection } from './types'
+import type { IssueCollection, IssueDetails, Report } from './types'
 
 // "/api" in development (Vite proxy); set VITE_API_URL for production
 export const API_URL = import.meta.env.VITE_API_URL ?? '/api'
@@ -15,8 +15,14 @@ export async function errorMessage(response: Response): Promise<string> {
   return `Request failed (${response.status})`
 }
 
-export async function fetchReports(bbox: string): Promise<ReportCollection> {
-  const response = await fetch(`${API_URL}/reports?bbox=${bbox}`)
+export async function fetchIssues(bbox: string): Promise<IssueCollection> {
+  const response = await fetch(`${API_URL}/issues?bbox=${bbox}`)
+  if (!response.ok) throw new Error(await errorMessage(response))
+  return response.json()
+}
+
+export async function fetchIssue(id: string): Promise<IssueDetails> {
+  const response = await fetch(`${API_URL}/issues/${id}`)
   if (!response.ok) throw new Error(await errorMessage(response))
   return response.json()
 }

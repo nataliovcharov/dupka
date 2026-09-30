@@ -302,3 +302,54 @@
   height: 10px;
   border-radius: 50%;
 }
+
+/* photos of an issue, one at a time */
+
+.gallery {
+  position: relative;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gallery-nav:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.gallery-nav:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.gallery-prev {
+  left: 0.6rem;
+}
+
+.gallery-next {
+  right: 0.6rem;
+}
+
+.gallery-count {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
