@@ -64,3 +64,36 @@ export interface AdminReport extends Report {
   privacy: { faces: number; plates: number } | null // how many were blurred
   last_review: Review | null
 }
+
+// one piece of damage on the map, reports of the same spot are grouped into it
+export interface IssueProperties {
+  id: string
+  damage_type: DamageType | null
+  severity: Severity | null
+  report_count: number
+  last_reported_at: string
+}
+
+export interface IssueFeature {
+  type: 'Feature'
+  geometry: { type: 'Point'; coordinates: [number, number] } // [lon, lat]
+  properties: IssueProperties
+}
+
+export interface IssueCollection {
+  type: 'FeatureCollection'
+  features: IssueFeature[]
+}
+
+// from GET /issues/{id}, reports are newest first
+export interface IssueDetails {
+  id: string
+  latitude: number
+  longitude: number
+  damage_type: DamageType | null
+  severity: Severity | null
+  report_count: number
+  created_at: string
+  last_reported_at: string
+  reports: { id: string; damage_type: string | null; severity: Severity | null; created_at: string }[]
+}

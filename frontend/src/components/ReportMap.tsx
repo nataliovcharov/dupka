@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-import { fetchReports } from '../api'
+import { fetchIssues } from '../api'
 import { MAP_STYLE, SKOPJE, type LngLat } from '../geo'
-import type { Report, ReportCollection, ReportProperties, Severity } from '../types'
+import type { IssueCollection, Report, ReportCollection, Severity } from '../types'
 
 const SEVERITIES: { value: Severity; label: string; color: string }[] = [
   { value: 'high', label: 'High', color: '#d62828' },
@@ -12,13 +12,13 @@ const SEVERITIES: { value: Severity; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: '#fcbf49' },
 ]
 
-const EMPTY: ReportCollection = { type: 'FeatureCollection', features: [] }
+const EMPTY: IssueCollection = { type: 'FeatureCollection', features: [] }
 
 interface Props {
   refreshKey: number // bump this to reload the reports, e.g. after a new upload
   onCenterChange: (center: LngLat) => void
   myReports: Report[] // sent from this browser, shown before they are approved
-  onSelect: (report: ReportProperties) => void // a public dot was tapped
+  onSelect: (issueId: string) => void // a dot was tapped
 }
 
 function toGeoJSON(reports: Report[]): ReportCollection {
@@ -38,8 +38,8 @@ function toGeoJSON(reports: Report[]): ReportCollection {
   }
 }
 
-// load the reports inside the visible area
-async function loadReports(map: maplibregl.Map): Promise<ReportCollection> {
+// load the issues inside the visible area
+async function loadIssues(map: maplibregl.Map): Promise<IssueCollection> {
   const bounds = map.getBounds()
   const bbox = [
     bounds.getWest(),
@@ -47,16 +47,16 @@ async function loadReports(map: maplibregl.Map): Promise<ReportCollection> {
     bounds.getEast(),
     bounds.getNorth(),
   ].join(',')
-  return fetchReports(bbox)
+  return fetchIssues(bbox)
 }
 
 // filtered here and not with a layer filter, so clusters only count what's shown
-function showReports(map: maplibregl.Map, reports: ReportCollection, severities: Severity[]) {
+function showIssues(map: maplibregl.Map, issues: IssueCollection, severities: Severity[]) {
   const source = map.getSource('reports') as maplibregl.GeoJSONSource | undefined
   source?.setData({
-    ...reports,
-    // reports without a severity are always shown
-    features: reports.features.filter(
+    ...issues,
+    // issues without a severity are always shown
+    features: issues.features.filter(
       (f) => !f.properties.severity || severities.includes(f.properties.severity),
     ),
   })
@@ -68,7 +68,7 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
   const onCenterChangeRef = useRef(onCenterChange)
   const onSelectRef = useRef(onSelect)
   const myReportsRef = useRef(myReports)
-  const reportsRef = useRef<ReportCollection>(EMPTY) // last loaded, before filtering
+  const issuesRef = useRef<IssueCollection>(EMPTY) // last loaded, before filtering
   const [severities, setSeverities] = useState<Severity[]>(['high', 'medium', 'low'])
   const severitiesRef = useRef(severities)
   const [error, setError] = useState<string | null>(null)
@@ -92,10 +92,10 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
     mapRef.current = map
 
     function refresh() {
-      loadReports(map)
-        .then((reports) => {
-          reportsRef.current = reports
-          showReports(map, reports, severitiesRef.current)
+      loadIssues(map)
+        .then((issues) => {
+          issuesRef.current = issues
+          showIssues(map, issues, severitiesRef.current)
           setError(null)
         })
         .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
@@ -172,17 +172,24 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
         filter: ['!', ['has', 'point_count']],
         paint: { 'circle-radius': 22, 'circle-opacity': 0 },
       })
+      // how many reports an issue has, next to dots with more than one
+      map.addLayer({
+        id: 'issue-count',
+        type: 'symbol',
+        source: 'reports',
+        filter: ['all', ['!', ['has', 'point_count']], ['>', ['get', 'report_count'], 1]],
+        layout: {
+          'text-field': ['to-string', ['get', 'report_count']],
+          'text-font': ['Noto Sans Bold'],
+          'text-size': 11,
+          'text-offset': [1.1, -1.1],
+          'text-allow-overlap': true,
+        },
+        paint: { 'text-color': '#111111', 'text-halo-color': '#ffffff', 'text-halo-width': 2 },
+      })
       map.on('click', 'reports-hit', (event) => {
-        const properties = event.features?.[0]?.properties
-        if (!properties) return
-        onSelectRef.current({
-          id: properties.id,
-          status: properties.status,
-          // the map drops empty values, so put them back
-          damage_type: properties.damage_type ?? null,
-          severity: properties.severity ?? null,
-          created_at: properties.created_at,
-        })
+        const id = event.features?.[0]?.properties?.id
+        if (id) onSelectRef.current(id)
       })
       // tapping a cluster zooms in until it splits
       map.on('click', 'clusters', (event) => {
@@ -241,10 +248,10 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
   useEffect(() => {
     const map = mapRef.current
     if (refreshKey === 0 || !map?.getSource('reports')) return
-    loadReports(map)
-      .then((reports) => {
-        reportsRef.current = reports
-        showReports(map, reports, severitiesRef.current)
+    loadIssues(map)
+      .then((issues) => {
+        issuesRef.current = issues
+        showIssues(map, issues, severitiesRef.current)
         setError(null)
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
@@ -254,7 +261,7 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
   useEffect(() => {
     severitiesRef.current = severities
     const map = mapRef.current
-    if (map?.getSource('reports')) showReports(map, reportsRef.current, severities)
+    if (map?.getSource('reports')) showIssues(map, issuesRef.current, severities)
   }, [severities])
 
   function toggle(severity: Severity) {
