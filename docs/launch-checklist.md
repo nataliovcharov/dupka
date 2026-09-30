@@ -13,14 +13,15 @@ Things that must be done before Dupka is public. Tick them off in the PR that do
 
 - [ ] Strong `ADMIN_TOKEN` set on the server, not the one from development
 - [x] Upload rate limit per IP (`UPLOAD_RATE_LIMIT`)
-- [ ] uvicorn trusts the host's proxy (`--forwarded-allow-ips`), otherwise the rate limit sees one IP for everyone
+- [x] uvicorn trusts the host's proxy (`--forwarded-allow-ips`), otherwise the rate limit sees one IP for everyone
 - [ ] More than one API process: move the rate limit counters to a shared store (Redis)
-- [ ] CORS allows only the frontend's domain, if the frontend and API are on different domains
+- [x] CORS allows only the frontend's domain (`CORS_ORIGINS`)
 
 ## Hosting
 
-- [ ] Photos in object storage, not on the server's disk (a new `Storage` class)
-- [ ] Postgres with PostGIS, migrations run on deploy (`alembic upgrade head`)
+- [x] Photos on the VM's disk, which persists (see `docs/decisions/0002-hosting.md`)
+- [ ] Nightly backups of the database and photos to Oracle Object Storage
+- [x] Postgres with PostGIS, migrations run on deploy (`migrate` service in `compose.prod.yaml`)
 - [ ] Worker with enough memory for PyTorch, CLIP, YOLO and the blur models (about 2 GB)
 - [ ] Model files downloaded on the worker (they're not in Git)
 - [ ] Frontend host sends every path (`/admin`, `/privacy`) to `index.html`

@@ -7,7 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """App settings, read from environment variables or a .env file."""
 
-    model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
+    # empty values count as unset, docker compose passes unset variables as ""
+    model_config = SettingsConfigDict(
+        env_file=("../.env", ".env"), extra="ignore", env_ignore_empty=True
+    )
 
     database_url: str
     storage_dir: Path = Path("storage")  # local photo storage in development
@@ -35,6 +38,9 @@ class Settings(BaseSettings):
     plate_threshold: float = 0.25
     # public reports this close (meters) are grouped into one issue
     duplicate_radius_m: float = 15
+    # frontend addresses allowed to call the api from a browser, e.g.
+    # ["https://dupka.pages.dev"]. empty in development, the vite proxy is used
+    cors_origins: list[str] = []
     # admin endpoints are off when this is empty
     admin_token: SecretStr | None = None
 
