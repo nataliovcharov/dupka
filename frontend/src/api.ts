@@ -31,3 +31,8 @@ export async function createReport(photo: Blob, [lon, lat]: LngLat): Promise<Rep
   if (!response.ok) throw new Error(await errorMessage(response))
   return response.json()
 }
+
+// public reports only, the API returns 404 for anything else
+export function reportPhotoUrl(id: string): string {
+  return `${API_URL}/reports/${id}/photo`
+}

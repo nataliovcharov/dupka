@@ -160,3 +160,35 @@ def test_get_report_hides_non_public_reports(visibility):
     report_id = create_report_in_skopje(visibility)
 
     assert client.get(f"/reports/{report_id}").status_code == 404
+
+
+def test_public_report_photo(tmp_storage):
+    report_id = create_report_in_skopje()
+
+    response = client.get(f"/reports/{report_id}/photo")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "public, max-age=300"
+    saved = tmp_storage / "reports" / f"{report_id}.jpg"
+    assert response.content == saved.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "visibility",
+    [
+        ReportVisibility.PENDING,
+        ReportVisibility.NEEDS_REVIEW,
+        ReportVisibility.HIDDEN,
+    ],
+)
+def test_photo_of_non_public_report_returns_404(visibility):
+    report_id = create_report_in_skopje(visibility)
+
+    assert client.get(f"/reports/{report_id}/photo").status_code == 404
+
+
+def test_missing_photo_returns_404(tmp_storage):
+    report_id = create_report_in_skopje()
+    (tmp_storage / "reports" / f"{report_id}.jpg").unlink()
+
+    assert client.get(f"/reports/{report_id}/photo").status_code == 404

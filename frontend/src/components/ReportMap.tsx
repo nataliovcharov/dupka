@@ -4,12 +4,13 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { fetchReports } from '../api'
 import { MAP_STYLE, SKOPJE, type LngLat } from '../geo'
-import type { Report, ReportCollection } from '../types'
+import type { Report, ReportCollection, ReportProperties } from '../types'
 
 interface Props {
   refreshKey: number // bump this to reload the reports, e.g. after a new upload
   onCenterChange: (center: LngLat) => void
   myReports: Report[] // sent from this browser, shown before they are approved
+  onSelect: (report: ReportProperties) => void // a public dot was tapped
 }
 
 function toGeoJSON(reports: Report[]): ReportCollection {
@@ -43,16 +44,18 @@ async function loadReports(map: maplibregl.Map): Promise<void> {
   source?.setData(reports)
 }
 
-export default function ReportMap({ refreshKey, onCenterChange, myReports }: Props) {
+export default function ReportMap({ refreshKey, onCenterChange, myReports, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const onCenterChangeRef = useRef(onCenterChange)
+  const onSelectRef = useRef(onSelect)
   const myReportsRef = useRef(myReports)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     onCenterChangeRef.current = onCenterChange
-  }, [onCenterChange])
+    onSelectRef.current = onSelect
+  }, [onCenterChange, onSelect])
 
   // create the map once
   useEffect(() => {
@@ -96,6 +99,31 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports }: Pro
             '#8d99ae',
           ],
         },
+      })
+      // invisible, bigger circles so dots are easy to tap on a phone
+      map.addLayer({
+        id: 'reports-hit',
+        type: 'circle',
+        source: 'reports',
+        paint: { 'circle-radius': 22, 'circle-opacity': 0 },
+      })
+      map.on('click', 'reports-hit', (event) => {
+        const properties = event.features?.[0]?.properties
+        if (!properties) return
+        onSelectRef.current({
+          id: properties.id,
+          status: properties.status,
+          // the map drops empty values, so put them back
+          damage_type: properties.damage_type ?? null,
+          severity: properties.severity ?? null,
+          created_at: properties.created_at,
+        })
+      })
+      map.on('mouseenter', 'reports-hit', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mouseleave', 'reports-hit', () => {
+        map.getCanvas().style.cursor = ''
       })
       // your own reports: hollow red rings until they are approved
       map.addSource('my-reports', { type: 'geojson', data: toGeoJSON(myReportsRef.current) })

@@ -8,11 +8,13 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Response,
     UploadFile,
     status,
 )
 from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import DbSession
@@ -73,14 +75,41 @@ def create_report(
     return ReportOut.from_model(report)
 
 
-@router.get("/{report_id}", response_model=ReportOut)
-def get_report(report_id: uuid.UUID, db: DbSession):
-    """Get one public report by its id."""
+def get_public_report(db: Session, report_id: uuid.UUID) -> Report:
+    """The report if it's public, otherwise 404."""
     report = db.get(Report, report_id)
     # same 404 for non-public reports, so hidden ones can't be found by id
     if report is None or report.visibility != ReportVisibility.PUBLIC:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "report not found")
-    return ReportOut.from_model(report)
+    return report
+
+
+@router.get("/{report_id}", response_model=ReportOut)
+def get_report(report_id: uuid.UUID, db: DbSession):
+    """Get one public report by its id."""
+    return ReportOut.from_model(get_public_report(db, report_id))
+
+
+@router.get(
+    "/{report_id}/photo",
+    response_class=Response,
+    responses={200: {"content": {"image/jpeg": {}}}},
+)
+def get_report_photo(
+    report_id: uuid.UUID,
+    db: DbSession,
+    storage: Annotated[Storage, Depends(get_storage)],
+):
+    """The photo of a public report, for the map."""
+    report = get_public_report(db, report_id)
+    try:
+        data = storage.load(report.photo_key)
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "photo not found") from exc
+    # short cache, a report can still be hidden later
+    return Response(
+        data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=300"}
+    )
 
 
 def parse_bbox(bbox: str) -> tuple[float, float, float, float]:
