@@ -8,6 +8,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -17,6 +18,7 @@ from sqlalchemy import cast, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.session import DbSession
 from app.models import Report, ReportVisibility
 from app.schemas.report import ReportCollection, ReportFeature, ReportOut
@@ -32,7 +34,10 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 @router.post("", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
+# read on every request, so it can be changed without a code change
+@limiter.limit(lambda: settings.upload_rate_limit)
 def create_report(
+    request: Request,  # slowapi needs it to find the client's IP
     db: DbSession,
     storage: Annotated[Storage, Depends(get_storage)],
     photo: Annotated[UploadFile, File(description="Photo of the road damage")],

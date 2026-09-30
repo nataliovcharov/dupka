@@ -12,6 +12,7 @@ from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
+from app.core.rate_limit import limiter  # noqa: E402
 from app.db.session import engine  # noqa: E402
 
 
@@ -26,3 +27,9 @@ def clean_reports(migrated_database):
     """Start every test with empty tables."""
     with engine.begin() as connection:
         connection.execute(text("TRUNCATE reviews, reports, issues"))
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    """Every test starts with fresh upload counters."""
+    limiter.reset()

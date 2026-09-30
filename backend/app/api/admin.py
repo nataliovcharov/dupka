@@ -84,6 +84,11 @@ def review_report(report_id: uuid.UUID, review_in: ReviewIn, db: DbSession):
     report = get_report_or_404(db, report_id)
     if report.status not in (ReportStatus.DONE, ReportStatus.FAILED):
         raise HTTPException(status.HTTP_409_CONFLICT, "report is still being processed")
+    # a failed report may never have been blurred, it can't go public like that
+    if review_in.decision == ReviewDecision.APPROVE and report.privacy is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "photo was never blurred, it can't be approved"
+        )
 
     # approving overwrites the report's type and severity,
     # so the model's answer comes from the first review when there is one

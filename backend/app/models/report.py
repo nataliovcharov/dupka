@@ -53,6 +53,8 @@ class Report(Base):
         Geography(geometry_type="POINT", srid=4326)
     )
     photo_key: Mapped[str] = mapped_column(String(255))
+    # set when the photo was deleted under the retention rule
+    photo_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # the issue this report is grouped into, set once it's public
     issue_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("issues.id", ondelete="SET NULL"), index=True

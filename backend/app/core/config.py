@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     database_url: str
     storage_dir: Path = Path("storage")  # local photo storage in development
     max_upload_mb: int = 10
+    # per IP address, in the format slowapi understands
+    upload_rate_limit: str = "10/hour;30/day"
+    # photos of hidden reports are deleted after this (see the privacy page)
+    hidden_photo_days: int = 30
     # detections below this are ignored when deciding if a photo shows road damage
     # f1 peak on val for e001 (0.62 at 0.281), see ml/EXPERIMENTS.md
     min_detection_confidence: float = 0.28

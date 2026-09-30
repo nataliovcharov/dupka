@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.core.config import settings
 from app.db.session import SessionLocal
 from app.main import app
 from app.models import Report, ReportVisibility
@@ -192,3 +193,20 @@ def test_missing_photo_returns_404(tmp_storage):
     (tmp_storage / "reports" / f"{report_id}.jpg").unlink()
 
     assert client.get(f"/reports/{report_id}/photo").status_code == 404
+
+
+def test_uploads_are_rate_limited(monkeypatch):
+    monkeypatch.setattr(settings, "upload_rate_limit", "2/hour")
+
+    def upload():
+        return client.post(
+            "/reports",
+            data=SKOPJE,
+            files={"photo": ("road.jpg", make_jpeg(), "image/jpeg")},
+        )
+
+    assert upload().status_code == 201
+    assert upload().status_code == 201
+    response = upload()
+    assert response.status_code == 429
+    assert "try again later" in response.json()["detail"]
