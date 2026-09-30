@@ -11,6 +11,10 @@ Road damage in Skopje gets reported in Facebook groups, in emails to the city, o
 - My YOLO model finds the damage type and severity. Unsure reports go to a review page instead of the map.
 - Reports of the same spot are grouped, so the map shows one dot with all its photos.
 
+
+https://github.com/user-attachments/assets/273a10f8-ae59-4ba9-bc73-795e52255291
+
+
 ## The model
 
 YOLO26s trained on RDD2022, a public road damage dataset. On the test split it gets 0.64 mAP50 overall and 0.51 on potholes.
