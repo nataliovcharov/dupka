@@ -1,26 +1,11 @@
 import { useEffect, useRef, useState, type TouchEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { fetchIssue, reportPhotoUrl } from '../api'
-import type { IssueDetails as Issue, Severity } from '../types'
+import { formatDate } from '../i18n'
+import type { IssueDetails as Issue } from '../types'
 
-const DAMAGE_LABELS: Record<string, string> = {
-  D40: 'Pothole',
-  D20: 'Alligator cracking',
-  D10: 'Transverse crack',
-  D00: 'Longitudinal crack',
-}
-
-const SEVERITY_LABELS: Record<Severity, string> = {
-  high: 'High severity',
-  medium: 'Medium severity',
-  low: 'Low severity',
-}
-
-const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium' })
-
-function formatDate(iso: string): string {
-  return dateFormat.format(new Date(iso))
-}
+const KNOWN_TYPES = ['D40', 'D20', 'D10', 'D00']
 
 interface Props {
   issueId: string
@@ -28,8 +13,9 @@ interface Props {
 }
 
 export default function IssueDetails({ issueId, onClose }: Props) {
+  const { t } = useTranslation()
   const [issue, setIssue] = useState<Issue | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const [index, setIndex] = useState(0) // which report's photo is shown
   const [failedPhotos, setFailedPhotos] = useState<string[]>([])
   const touchStartX = useRef<number | null>(null)
@@ -40,8 +26,8 @@ export default function IssueDetails({ issueId, onClose }: Props) {
       .then((loaded) => {
         if (!cancelled) setIssue(loaded)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load this report')
+      .catch(() => {
+        if (!cancelled) setFailed(true)
       })
     return () => {
       cancelled = true
@@ -75,9 +61,8 @@ export default function IssueDetails({ issueId, onClose }: Props) {
   }, [onClose, count])
 
   const report = issue?.reports[index]
-  const title = issue?.damage_type
-    ? (DAMAGE_LABELS[issue.damage_type] ?? issue.damage_type)
-    : 'Road damage'
+  const type = issue?.damage_type
+  const title = t(type && KNOWN_TYPES.includes(type) ? `damage.${type}` : 'damage.unknown')
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -90,17 +75,19 @@ export default function IssueDetails({ issueId, onClose }: Props) {
       >
         <div className="details-head">
           <h2 id="details-title">{title}</h2>
-          <button className="details-close" onClick={onClose} aria-label="Close">
+          <button className="details-close" onClick={onClose} aria-label={t('details.close')}>
             ×
           </button>
         </div>
 
-        {error && (
+        {failed && (
           <p className="form-error" role="alert">
-            {error}
+            {t('details.loadFailed')}
           </p>
         )}
-        {!issue && !error && <p className="details-photo details-photo-missing">Loading…</p>}
+        {!issue && !failed && (
+          <p className="details-photo details-photo-missing">{t('details.loading')}</p>
+        )}
 
         {issue && report && (
           <>
@@ -110,22 +97,22 @@ export default function IssueDetails({ issueId, onClose }: Props) {
               onTouchEnd={handleTouchEnd}
             >
               {failedPhotos.includes(report.id) ? (
-                <p className="details-photo details-photo-missing">Photo not available</p>
+                <p className="details-photo details-photo-missing">{t('details.photoMissing')}</p>
               ) : (
                 <img
                   key={report.id}
                   className="details-photo"
                   src={reportPhotoUrl(report.id)}
-                  alt={`${title}, photo ${index + 1} of ${count}`}
+                  alt={t('details.photoAlt', { title, number: index + 1, count })}
                   onError={() => setFailedPhotos((ids) => [...ids, report.id])}
                 />
               )}
               {count > 1 && (
                 <>
-                  <button className="gallery-nav gallery-prev" onClick={previous} aria-label="Previous photo">
+                  <button className="gallery-nav gallery-prev" onClick={previous} aria-label={t('details.previous')}>
                     ‹
                   </button>
-                  <button className="gallery-nav gallery-next" onClick={next} aria-label="Next photo">
+                  <button className="gallery-nav gallery-next" onClick={next} aria-label={t('details.next')}>
                     ›
                   </button>
                   <span className="gallery-count">
@@ -138,16 +125,21 @@ export default function IssueDetails({ issueId, onClose }: Props) {
             <div className="details-meta">
               {issue.severity && (
                 <span className={`severity-pill severity-${issue.severity}`}>
-                  {SEVERITY_LABELS[issue.severity]}
+                  {t(`severityLong.${issue.severity}`)}
                 </span>
               )}
               <span className="hint">
                 {issue.report_count === 1
-                  ? `Reported ${formatDate(issue.created_at)}`
-                  : `Reported ${issue.report_count} times, first on ${formatDate(issue.created_at)}`}
+                  ? t('details.reportedOnce', { date: formatDate(issue.created_at) })
+                  : t('details.reportedTimes', {
+                      count: issue.report_count,
+                      date: formatDate(issue.created_at),
+                    })}
               </span>
             </div>
-            {count > 1 && <p className="hint">This photo: {formatDate(report.created_at)}</p>}
+            {count > 1 && (
+              <p className="hint">{t('details.thisPhoto', { date: formatDate(report.created_at) })}</p>
+            )}
           </>
         )}
       </div>

@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 
 import logo from '../assets/logo.svg'
+import { formatDate } from '../i18n'
+import LanguageSwitcher from './LanguageSwitcher'
+
+const UPDATED = '2026-09-30'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -14,81 +19,60 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 // keep in step with the backend: hidden_photo_days and upload_rate_limit
 export default function PrivacyPage() {
+  const { t } = useTranslation()
+
   return (
     <div className="page">
       <header className="page-header">
-        <Link to="/" aria-label="Back to the map">
+        <Link to="/" aria-label={t('privacy.backToMap')}>
           <img src={logo} alt="Dupka" className="app-logo" />
         </Link>
-        <Link to="/" className="back-link">
-          <span aria-hidden="true">←</span> Back to map
-        </Link>
+        <div className="header-end">
+          <Link to="/" className="back-link">
+            <span aria-hidden="true">←</span> {t('privacy.backToMap')}
+          </Link>
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <main className="page-body">
-        <h1>Privacy</h1>
-        <p className="hint">Last updated 30 September 2026</p>
+        <h1>{t('privacy.title')}</h1>
+        <p className="hint">{t('privacy.updated', { date: formatDate(UPDATED) })}</p>
 
-        <Section title="What we collect">
-          <p>
-            When you report road damage we keep the photo, the location you confirm on the map and
-            the time. We don't ask for your name, email or an account.
-          </p>
-          <p>
-            Photos from phones often carry hidden data, like where and with which camera they were
-            taken. We remove all of it as soon as the photo arrives.
-          </p>
+        <Section title={t('privacy.collectTitle')}>
+          <p>{t('privacy.collect1')}</p>
+          <p>{t('privacy.collect2')}</p>
         </Section>
 
-        <Section title="Faces and number plates">
-          <p>
-            Faces and number plates are found and blurred automatically before anyone else can see
-            the photo. We only keep the blurred version. If blurring fails, the photo is never
-            shown.
-          </p>
+        <Section title={t('privacy.blurTitle')}>
+          <p>{t('privacy.blur')}</p>
         </Section>
 
-        <Section title="What is public">
-          <p>
-            Once a report is checked, the blurred photo, its location, the type of damage, how bad
-            it is and the date appear on the public map. Reports of the same spot are shown
-            together.
-          </p>
+        <Section title={t('privacy.publicTitle')}>
+          <p>{t('privacy.public')}</p>
         </Section>
 
-        <Section title="How we use it">
+        <Section title={t('privacy.useTitle')}>
           <ul>
-            <li>To show road damage on the map.</li>
-            <li>
-              To improve the automatic damage detection. Photos and our review decisions are used
-              to train and test the model.
-            </li>
+            <li>{t('privacy.use1')}</li>
+            <li>{t('privacy.use2')}</li>
           </ul>
-          <p>
-            Photos are checked on our own server. They are not sent to other companies for
-            analysis, and we don't sell or share them.
-          </p>
+          <p>{t('privacy.use3')}</p>
         </Section>
 
-        <Section title="Technical data">
-          <p>
-            To stop automated abuse, we count uploads per IP address for up to a day. The count is
-            kept in memory only and is not stored with your report. Our hosting provider may keep
-            standard server logs.
-          </p>
+        <Section title={t('privacy.technicalTitle')}>
+          <p>{t('privacy.technical')}</p>
         </Section>
 
-        <Section title="How long we keep it">
+        <Section title={t('privacy.retentionTitle')}>
           <ul>
-            <li>Public reports stay while the damage is on the map.</li>
-            <li>Photos of reports we don't publish are deleted after 30 days.</li>
+            <li>{t('privacy.retention1')}</li>
+            <li>{t('privacy.retention2')}</li>
           </ul>
         </Section>
 
-        <Section title="Questions and removal">
-          <p>
-            Contact details for questions and removal requests will be added here before launch.
-          </p>
+        <Section title={t('privacy.contactTitle')}>
+          <p>{t('privacy.contact')}</p>
         </Section>
       </main>
     </div>

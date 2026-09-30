@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 
 import { createReport } from '../api'
+import { errorKey } from '../i18n/errors'
 import { getCurrentPosition, isInNorthMacedonia, type LngLat } from '../geo'
 import type { Report } from '../types'
 import { resizeImage } from '../utils/image'
@@ -24,9 +26,11 @@ export default function ReportFlow({
   onClose,
   onSubmitted,
 }: Props) {
+  const { t } = useTranslation()
   const [step, setStep] = useState<Step>('confirm')
   const [location, setLocation] = useState<LngLat>(fallbackLocation)
-  const [locationNote, setLocationNote] = useState('Finding your location…')
+  // translation keys, so the texts follow the chosen language
+  const [locationNote, setLocationNote] = useState('report.locating')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,11 +39,11 @@ export default function ReportFlow({
       .then((position) => {
         if (cancelled) return
         setLocation(position)
-        setLocationNote('Drag the pin if it is not exactly on the damage.')
+        setLocationNote('report.dragPin')
       })
       .catch(() => {
         if (cancelled) return
-        setLocationNote('We could not get your location. Move the pin to the damage.')
+        setLocationNote('report.noLocation')
       })
     return () => {
       cancelled = true
@@ -48,7 +52,7 @@ export default function ReportFlow({
 
   async function submit() {
     if (!isInNorthMacedonia(location)) {
-      setError('The location must be in North Macedonia.')
+      setError('report.outsideMacedonia')
       return
     }
     setError(null)
@@ -59,7 +63,7 @@ export default function ReportFlow({
       setStep('done')
       onSubmitted(report)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError(errorKey(err))
       setStep('confirm')
     }
   }
@@ -69,41 +73,37 @@ export default function ReportFlow({
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="report-title">
         {step === 'done' ? (
           <>
-            <h2 id="report-title">Thank you!</h2>
-            <p>
-              Your report was sent. We check every photo before it goes on the public map,
-              usually within a minute. Until then, you'll see it as a red ring.
-            </p>
+            <h2 id="report-title">{t('report.thanksTitle')}</h2>
+            <p>{t('report.thanksBody')}</p>
             <button className="button button-primary" onClick={onClose}>
-              Done
+              {t('report.done')}
             </button>
           </>
         ) : (
           <>
-            <h2 id="report-title">Report road damage</h2>
-            <img className="photo-preview" src={previewUrl} alt="Your photo of the damage" />
+            <h2 id="report-title">{t('report.title')}</h2>
+            <img className="photo-preview" src={previewUrl} alt={t('report.photoAlt')} />
             <LocationPicker value={location} onChange={setLocation} />
-            <p className="hint">{locationNote}</p>
+            <p className="hint">{t(locationNote)}</p>
             {error && (
               <p className="form-error" role="alert">
-                {error}
+                {t(error)}
               </p>
             )}
             <div className="actions">
               <button className="button" onClick={onClose} disabled={step === 'sending'}>
-                Cancel
+                {t('report.cancel')}
               </button>
               <button
                 className="button button-primary"
                 onClick={submit}
                 disabled={step === 'sending'}
               >
-                {step === 'sending' ? 'Sending…' : 'Send report'}
+                {step === 'sending' ? t('report.sending') : t('report.send')}
               </button>
             </div>
             <p className="fine-print">
-              Faces and number plates are blurred automatically.{' '}
-              <Link to="/privacy">How we use your photo</Link>
+              {t('report.blurNote')} <Link to="/privacy">{t('report.privacyLink')}</Link>
             </p>
           </>
         )}
