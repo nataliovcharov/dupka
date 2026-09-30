@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,8 @@ class Settings(BaseSettings):
     clip_model: str = "openai/clip-vit-base-patch32"
     unsafe_threshold: float = 0.2
     road_threshold: float = 0.5
+    # admin endpoints are off when this is empty
+    admin_token: SecretStr | None = None
 
 
 settings = Settings()
