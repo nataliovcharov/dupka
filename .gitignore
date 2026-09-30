@@ -230,6 +230,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 # ML artifacts (datasets and model weights live outside Git)
 ml/data/
