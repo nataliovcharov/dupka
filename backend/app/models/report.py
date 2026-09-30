@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from geoalchemy2 import Geography, WKBElement
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -53,6 +53,10 @@ class Report(Base):
         Geography(geometry_type="POINT", srid=4326)
     )
     photo_key: Mapped[str] = mapped_column(String(255))
+    # the issue this report is grouped into, set once it's public
+    issue_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("issues.id", ondelete="SET NULL"), index=True
+    )
     detections: Mapped[list | None] = mapped_column(JSONB)
     # safety check scores, kept for reviewing reports and tuning thresholds
     safety: Mapped[dict | None] = mapped_column(JSONB)

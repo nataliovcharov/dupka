@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     clip_model: str = "openai/clip-vit-base-patch32"
     unsafe_threshold: float = 0.2
     road_threshold: float = 0.5
+    # public reports this close (meters) are grouped into one issue
+    duplicate_radius_m: float = 15
     # admin endpoints are off when this is empty
     admin_token: SecretStr | None = None
 

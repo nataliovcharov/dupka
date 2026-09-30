@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.main import app
-from app.models import Report, ReportStatus, ReportVisibility, Review
+from app.models import Issue, Report, ReportStatus, ReportVisibility, Review
 from app.storage import LocalStorage, get_storage
 
 client = TestClient(app)
@@ -243,3 +243,18 @@ def test_invalid_review_returns_422(body):
 def test_cannot_review_while_processing(status):
     report_id = make_report(status=status, visibility=ReportVisibility.PENDING)
     assert review(report_id, decision="reject").status_code == 409
+
+
+def test_approve_and_reject_keep_issues_in_step():
+    report_id = make_report()
+
+    review(report_id, decision="approve", damage_type="D40", severity="high")
+    with SessionLocal() as db:
+        issue_id = db.get(Report, report_id).issue_id
+        assert issue_id is not None
+        assert db.get(Issue, issue_id).severity == "high"
+
+    review(report_id, decision="reject")
+    with SessionLocal() as db:
+        assert db.get(Report, report_id).issue_id is None
+        assert db.get(Issue, issue_id) is None  # it had no other reports

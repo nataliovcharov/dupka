@@ -9,6 +9,7 @@ from app.core.security import require_admin
 from app.db.session import DbSession
 from app.models import Report, ReportStatus, ReportVisibility, Review, ReviewDecision
 from app.schemas.admin import AdminReportOut, ReviewIn
+from app.services.issues import attach_to_issue, detach_from_issue
 from app.storage import Storage, get_storage
 
 # every route here needs the admin token
@@ -109,6 +110,11 @@ def review_report(report_id: uuid.UUID, review_in: ReviewIn, db: DbSession):
     else:
         report.visibility = ReportVisibility.HIDDEN
     db.add(review)
+    # keep the map's issues in step with the decision
+    if approve:
+        attach_to_issue(db, report)
+    else:
+        detach_from_issue(db, report)
     db.commit()
     db.refresh(review)
     return AdminReportOut.from_report(report, review)
