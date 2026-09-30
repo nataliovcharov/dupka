@@ -11,12 +11,14 @@ from app.services.detector import Detector
 from app.services.issues import attach_to_issue
 from app.services.moderation import confident, decide_visibility
 from app.services.privacy import PrivacyDetector, anonymize
+from app.services.retention import delete_old_hidden_photos
 from app.services.safety import SafetyChecker
 from app.services.severity import summarize
 from app.storage import Storage, get_storage
 
 logger = logging.getLogger("dupka.worker")
 POLL_SECONDS = 2
+CLEANUP_SECONDS = 60 * 60  # how often old photos are checked for deletion
 
 
 def claim_next_report(db: Session) -> Report | None:
@@ -101,7 +103,14 @@ def run_forever(
     privacy_detector: PrivacyDetector,
 ) -> None:
     logger.info("worker started")
+    last_cleanup = 0.0
     while True:
+        if time.monotonic() - last_cleanup > CLEANUP_SECONDS:
+            with SessionLocal() as db:
+                deleted = delete_old_hidden_photos(db, storage)
+            if deleted:
+                logger.info("deleted %d old photos of hidden reports", deleted)
+            last_cleanup = time.monotonic()
         if not run_once(detector, safety_checker, storage, privacy_detector):
             time.sleep(POLL_SECONDS)
 

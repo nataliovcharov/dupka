@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react'
+import { Link } from 'react-router'
 
 import IssueDetails from './components/IssueDetails'
 import ReportFlow from './components/ReportFlow'
@@ -39,6 +40,9 @@ export default function App() {
         <h1>
           <img src={logo} alt="Dupka" className="app-logo" />
         </h1>
+        <Link to="/privacy" className="header-link">
+          Privacy
+        </Link>
       </header>
 
       <ReportMap

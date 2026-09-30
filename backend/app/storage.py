@@ -11,6 +11,8 @@ class Storage(Protocol):
 
     def load(self, key: str) -> bytes: ...
 
+    def delete(self, key: str) -> None: ...
+
 
 class LocalStorage:
     """Saves files on disk. Used in development and tests.
@@ -28,6 +30,9 @@ class LocalStorage:
 
     def load(self, key: str) -> bytes:
         return (self.root / key).read_bytes()
+
+    def delete(self, key: str) -> None:
+        (self.root / key).unlink(missing_ok=True)
 
 
 def get_storage() -> Storage:

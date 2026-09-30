@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 
 import { createReport } from '../api'
 import { getCurrentPosition, isInNorthMacedonia, type LngLat } from '../geo'
@@ -100,6 +101,10 @@ export default function ReportFlow({
                 {step === 'sending' ? 'Sending…' : 'Send report'}
               </button>
             </div>
+            <p className="fine-print">
+              Faces and number plates are blurred automatically.{' '}
+              <Link to="/privacy">How we use your photo</Link>
+            </p>
           </>
         )}
       </div>

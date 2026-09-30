@@ -55,6 +55,7 @@ def make_report(
                 {"damage_type": "D20", "confidence": 0.3, "box": [0.1, 0.2, 0.5, 0.6]}
             ],
             safety={"scores": {"road": 0.98}},
+            privacy={"faces": 0, "plates": 0},
             damage_type="D20",
             severity="medium",
             # fixed times, so ordering tests don't depend on timing
@@ -258,3 +259,15 @@ def test_approve_and_reject_keep_issues_in_step():
     with SessionLocal() as db:
         assert db.get(Report, report_id).issue_id is None
         assert db.get(Issue, issue_id) is None  # it had no other reports
+
+
+def test_unblurred_report_cannot_be_approved():
+    report_id = make_report(status=ReportStatus.FAILED)
+    with SessionLocal() as db:
+        db.get(Report, report_id).privacy = None  # blurring never ran
+        db.commit()
+
+    response = review(report_id, decision="approve", damage_type="D40", severity="high")
+    assert response.status_code == 409
+    # rejecting is still fine
+    assert review(report_id, decision="reject").status_code == 200
