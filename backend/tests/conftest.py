@@ -23,6 +23,6 @@ def migrated_database():
 
 @pytest.fixture(autouse=True)
 def clean_reports(migrated_database):
-    """Start every test with an empty reports table."""
+    """Start every test with empty tables."""
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE reports"))
+        connection.execute(text("TRUNCATE reviews, reports"))
