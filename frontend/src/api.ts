@@ -15,15 +15,29 @@ export async function errorMessage(response: Response): Promise<string> {
   return `Request failed (${response.status})`
 }
 
+// keeps the status, so the app can show a translated message
+export class ApiError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+async function apiError(response: Response): Promise<ApiError> {
+  return new ApiError(response.status, await errorMessage(response))
+}
+
 export async function fetchIssues(bbox: string): Promise<IssueCollection> {
   const response = await fetch(`${API_URL}/issues?bbox=${bbox}`)
-  if (!response.ok) throw new Error(await errorMessage(response))
+  if (!response.ok) throw await apiError(response)
   return response.json()
 }
 
 export async function fetchIssue(id: string): Promise<IssueDetails> {
   const response = await fetch(`${API_URL}/issues/${id}`)
-  if (!response.ok) throw new Error(await errorMessage(response))
+  if (!response.ok) throw await apiError(response)
   return response.json()
 }
 
@@ -34,7 +48,7 @@ export async function createReport(photo: Blob, [lon, lat]: LngLat): Promise<Rep
   form.append('longitude', String(lon))
 
   const response = await fetch(`${API_URL}/reports`, { method: 'POST', body: form })
-  if (!response.ok) throw new Error(await errorMessage(response))
+  if (!response.ok) throw await apiError(response)
   return response.json()
 }
 

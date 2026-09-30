@@ -1,7 +1,9 @@
 import { useRef, useState, type ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 
 import IssueDetails from './components/IssueDetails'
+import LanguageSwitcher from './components/LanguageSwitcher'
 import ReportFlow from './components/ReportFlow'
 import ReportMap from './components/ReportMap'
 import { SKOPJE, type LngLat } from './geo'
@@ -15,6 +17,7 @@ interface Draft {
 }
 
 export default function App() {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [mapCenter, setMapCenter] = useState<LngLat>(SKOPJE)
@@ -40,9 +43,12 @@ export default function App() {
         <h1>
           <img src={logo} alt="Dupka" className="app-logo" />
         </h1>
-        <Link to="/privacy" className="header-link">
-          Privacy
-        </Link>
+        <div className="header-end">
+          <Link to="/privacy" className="header-link">
+            {t('header.privacy')}
+          </Link>
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <ReportMap
@@ -54,7 +60,7 @@ export default function App() {
 
       <footer className="action-bar">
         <button className="report-button" onClick={() => fileInputRef.current?.click()}>
-          Report damage
+          {t('map.reportButton')}
         </button>
       </footer>
       {/* no capture attribute, so phones offer both "Take photo" and "Photo library" */}

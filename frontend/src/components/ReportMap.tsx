@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
+import { useTranslation } from 'react-i18next'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { fetchIssues } from '../api'
 import { MAP_STYLE, SKOPJE, type LngLat } from '../geo'
 import type { IssueCollection, Report, ReportCollection, Severity } from '../types'
 
-const SEVERITIES: { value: Severity; label: string; color: string }[] = [
-  { value: 'high', label: 'High', color: '#d62828' },
-  { value: 'medium', label: 'Medium', color: '#f77f00' },
-  { value: 'low', label: 'Low', color: '#fcbf49' },
+const SEVERITIES: { value: Severity; color: string }[] = [
+  { value: 'high', color: '#d62828' },
+  { value: 'medium', color: '#f77f00' },
+  { value: 'low', color: '#fcbf49' },
 ]
 
 const EMPTY: IssueCollection = { type: 'FeatureCollection', features: [] }
@@ -71,6 +72,8 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
   const issuesRef = useRef<IssueCollection>(EMPTY) // last loaded, before filtering
   const [severities, setSeverities] = useState<Severity[]>(['high', 'medium', 'low'])
   const severitiesRef = useRef(severities)
+  const { t } = useTranslation()
+  // a translation key, so the message follows the chosen language
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
           showIssues(map, issues, severitiesRef.current)
           setError(null)
         })
-        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
+        .catch(() => setError('map.loadFailed'))
     }
 
     map.on('load', () => {
@@ -254,7 +257,7 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
         showIssues(map, issues, severitiesRef.current)
         setError(null)
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load reports'))
+      .catch(() => setError('map.loadFailed'))
   }, [refreshKey])
 
   // redraw with the chosen severities, no new request needed
@@ -275,7 +278,7 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
   return (
     <div className="map-wrapper">
       <div ref={containerRef} className="map" />
-      <div className="map-filters" role="group" aria-label="Show severity">
+      <div className="map-filters" role="group" aria-label={t('map.filterLabel')}>
         {SEVERITIES.map((s) => (
           <button
             key={s.value}
@@ -284,11 +287,11 @@ export default function ReportMap({ refreshKey, onCenterChange, myReports, onSel
             onClick={() => toggle(s.value)}
           >
             <span className="filter-dot" style={{ background: s.color }} />
-            {s.label}
+            {t(`severity.${s.value}`)}
           </button>
         ))}
       </div>
-      {error && <div className="map-error">{error}</div>}
+      {error && <div className="map-error">{t(error)}</div>}
     </div>
   )
 }
