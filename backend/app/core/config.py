@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     storage_dir: Path = Path("storage")  # local photo storage in development
     max_upload_mb: int = 10
     # detections below this are ignored when deciding if a photo shows road damage
-    min_detection_confidence: float = 0.4
+    # f1 peak on val for e001 (0.62 at 0.281), see ml/EXPERIMENTS.md
+    min_detection_confidence: float = 0.28
     # trained weights, kept out of Git (see ml/EXPERIMENTS.md)
     model_path: Path = Path("../ml/models/e001-best.pt")
     # safety check, tuned on sample photos (see docs/moderation.md)
