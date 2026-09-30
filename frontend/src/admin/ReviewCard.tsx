@@ -43,6 +43,10 @@ function timeAgo(iso: string, now: number): string {
   return relativeTime.format(Math.round(hours / 24), 'day')
 }
 
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? '' : 's'}`
+}
+
 // why the report ended up here, in plain words
 function reviewReason(report: AdminReport): string {
   if (report.status === 'failed') return 'Processing failed'
@@ -172,6 +176,15 @@ export default function ReviewCard({ token, report, onDecide, onSkip, onError }:
               threshold={UNSAFE_THRESHOLD}
             />
             <ScoreBar label="Other" value={scores.other} tone="other" />
+          </div>
+        )}
+
+        {report.privacy && (
+          <div className="panel-section">
+            <h3 className="panel-heading">Blurred</h3>
+            <p className="admin-muted">
+              {plural(report.privacy.faces, 'face')}, {plural(report.privacy.plates, 'plate')}
+            </p>
           </div>
         )}
 

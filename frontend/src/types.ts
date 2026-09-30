@@ -61,5 +61,6 @@ export interface Review {
 export interface AdminReport extends Report {
   detections: Detection[] | null
   safety: Safety | null
+  privacy: { faces: number; plates: number } | null // how many were blurred
   last_review: Review | null
 }

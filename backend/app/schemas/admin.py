@@ -44,6 +44,7 @@ class AdminReportOut(ReportOut):
 
     detections: list[Detection] | None
     safety: dict | None
+    privacy: dict | None
     last_review: ReviewOut | None
 
     @classmethod
@@ -52,6 +53,7 @@ class AdminReportOut(ReportOut):
             **ReportOut.from_model(report).model_dump(),
             detections=report.detections,
             safety=report.safety,
+            privacy=report.privacy,
             last_review=(
                 ReviewOut.model_validate(last_review) if last_review else None
             ),
