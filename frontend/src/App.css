@@ -164,3 +164,90 @@
   background: #e0201b;
   color: #fff;
 }
+
+/* details of a report on the map */
+
+.details-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.details-head h2 {
+  margin: 0;
+}
+
+.details-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f0f2;
+  color: #333;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.details-close:hover {
+  background: #e4e4e7;
+}
+
+.details-close:focus-visible {
+  outline: 3px solid #1d3557;
+  outline-offset: 2px;
+}
+
+.details-photo {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #0c0c0e;
+}
+
+.details-photo-missing {
+  display: grid;
+  place-items: center;
+  height: 200px;
+  margin: 0;
+  color: #8a8a94;
+}
+
+.details-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.details-meta .hint {
+  margin: 0;
+}
+
+/* same colours as the dots on the map */
+.severity-pill {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.severity-high {
+  background: #fbe4e4;
+  color: #b3201f;
+}
+
+.severity-medium {
+  background: #fdeedd;
+  color: #a85200;
+}
+
+.severity-low {
+  background: #fdf5dd;
+  color: #7a5a00;
+}

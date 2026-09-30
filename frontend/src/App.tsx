@@ -1,9 +1,10 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 
+import ReportDetails from './components/ReportDetails'
 import ReportFlow from './components/ReportFlow'
 import ReportMap from './components/ReportMap'
 import { SKOPJE, type LngLat } from './geo'
-import type { Report } from './types'
+import type { Report, ReportProperties } from './types'
 import logo from './assets/logo.svg'
 import './App.css'
 
@@ -19,6 +20,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
   // kept only while the page is open, the map shows them before they are approved
   const [myReports, setMyReports] = useState<Report[]>([])
+  const [selected, setSelected] = useState<ReportProperties | null>(null)
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const photo = event.target.files?.[0]
@@ -43,6 +45,7 @@ export default function App() {
         refreshKey={refreshKey}
         onCenterChange={setMapCenter}
         myReports={myReports}
+        onSelect={setSelected}
       />
 
       <footer className="action-bar">
@@ -58,6 +61,8 @@ export default function App() {
         hidden
         onChange={handleFile}
       />
+
+      {selected && <ReportDetails report={selected} onClose={() => setSelected(null)} />}
 
       {draft && (
         <ReportFlow
