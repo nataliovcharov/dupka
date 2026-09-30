@@ -32,3 +32,34 @@ export interface ReportCollection {
   type: 'FeatureCollection'
   features: ReportFeature[]
 }
+
+export type DamageType = 'D00' | 'D10' | 'D20' | 'D40'
+
+export interface Detection {
+  damage_type: DamageType
+  confidence: number
+  box: [number, number, number, number] // x1, y1, x2, y2 as 0-1 of the photo size
+}
+
+export interface Safety {
+  scores: { road: number; unsafe: number; other: number }
+  unsafe: boolean
+  is_road: boolean
+}
+
+export interface Review {
+  decision: 'approve' | 'reject'
+  damage_type: DamageType | null
+  severity: Severity | null
+  model_damage_type: DamageType | null
+  model_severity: Severity | null
+  reviewer: string
+  created_at: string
+}
+
+// a report with everything a reviewer needs, from GET /admin/reports
+export interface AdminReport extends Report {
+  detections: Detection[] | null
+  safety: Safety | null
+  last_review: Review | null
+}
