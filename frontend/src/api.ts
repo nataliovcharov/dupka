@@ -2,10 +2,10 @@ import type { LngLat } from './geo'
 import type { Report, ReportCollection } from './types'
 
 // "/api" in development (Vite proxy); set VITE_API_URL for production
-const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+export const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 // use the API's error message when there is one, so users see why it failed
-async function errorMessage(response: Response): Promise<string> {
+export async function errorMessage(response: Response): Promise<string> {
   try {
     const body = await response.json()
     if (typeof body.detail === 'string') return body.detail
