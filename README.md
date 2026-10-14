@@ -5,7 +5,7 @@ Dupka (Macedonian for pothole) is a web app for reporting road damage in Skopje.
 Road damage in Skopje gets reported in Facebook groups, in emails to the city, or not at all. Nobody can see what's already been reported, and the same pothole gets reported again and again.
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/273a10f8-ae59-4ba9-bc73-795e52255291" width="300" controls muted></video>
+  <img src="docs/demo.gif" width="300" alt="Reporting a pothole in Dupka from a phone">
 </p>
 <p align="center"><sub>A report from my phone, start to finish.</sub></p>
 
